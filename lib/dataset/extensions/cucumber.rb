@@ -1,20 +1,36 @@
+$__cucumber_toplevel = self
+
 module Dataset
   module Extensions # :nodoc:
-
-    module CucumberWorld # :nodoc:
-      def dataset(*datasets, &block)
-        add_dataset(*datasets, &block)
+    class CucumberInitializer # :nodoc:
+      include Dataset
+      
+      def load(datasets)
+        datasets.each do |dataset|
+          puts "Adding dataset"
+          self.class.add_dataset(dataset)
+        end
 
         load = nil
+        initializer = self
         $__cucumber_toplevel.Before do
-          load = dataset_session.load_datasets_for(self.class)
-          extend_from_dataset_load(load)
+          load = initializer.dataset_session.load_datasets_for(initializer.class)
+          initializer.extend_from_dataset_load(load)
         end
         # Makes sure the datasets are reloaded after each scenario
-        Cucumber::Rails.use_transactional_fixtures
+        ::Cucumber::Rails::World.use_transactional_fixtures = true
       end
     end
-
+    
+    module Cucumber # :nodoc:      
+      def Datasets
+        raise "A block is required when calling Datasets" unless block_given?
+        initializer = CucumberInitializer.new
+        datasets = yield
+        initializer.load(datasets)
+      end
+    end    
   end
 end
-Cucumber::Rails::World.extend Dataset::Extensions::CucumberWorld
+
+extend(Dataset::Extensions::Cucumber)

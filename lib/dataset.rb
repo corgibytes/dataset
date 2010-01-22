@@ -1,5 +1,5 @@
-require 'activesupport'
-require 'activerecord'
+require 'active_support'
+require 'active_record'
 
 require 'dataset/version'
 require 'dataset/instance_methods'
@@ -73,14 +73,14 @@ require 'dataset/record/model'
 #
 module Dataset
   def self.included(test_context) # :nodoc:
-    if test_context.name =~ /World\Z/
+    if test_context.name =~ /Initializer\Z/
       require 'dataset/extensions/cucumber'
     elsif test_context.name =~ /TestCase\Z/
       require 'dataset/extensions/test_unit'
     elsif test_context.name =~ /ExampleGroup\Z/
       require 'dataset/extensions/rspec'
     else
-      raise "I don't understand your test framework"
+      raise "Hi, Dataset here. I can't figure out what test framework you are using."
     end
     
     test_context.extend ContextClassMethods

@@ -1,3 +1,7 @@
+unless defined? RAILS_ROOT
+  RAILS_ROOT = File.dirname(__FILE__)
+end
+
 $:.unshift(File.join(File.dirname(__FILE__), 'lib'))
 
 require File.join(File.dirname(__FILE__), 'plugit/descriptor')
