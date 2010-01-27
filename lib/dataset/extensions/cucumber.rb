@@ -7,7 +7,6 @@ module Dataset
       
       def load(datasets)
         datasets.each do |dataset|
-          puts "Adding dataset"
           self.class.add_dataset(dataset)
         end
 

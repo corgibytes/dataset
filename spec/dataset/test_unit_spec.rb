@@ -1,13 +1,86 @@
 require File.expand_path(File.dirname(__FILE__) + '/../spec_helper')
 
 require 'test/unit/testresult'
-class Test::Unit::TestCase
-  include Dataset
+
+module Dataset
+  module Testing    
+    class TestCase < Test::Unit::TestCase
+      include Dataset
+      
+      # rspec monkey patches the suite method and the initialize method. Doing so allows 
+      # it to take over execution of the tests. We don't want that here. We want to run
+      # directly against Test::Unit. So I have copied this method directly from
+      # the 1.8 version of Test::Unit. Is there a way to restore the original method
+      # in a programmatic fashion? Or should I patch rspec so that I can get access
+      # to the original methods?
+  
+      def initialize(test_method_name)
+        @method_name = test_method_name
+        @test_passed = true
+      end
+      
+      def self.suite
+        method_names = public_instance_methods(true)
+        tests = method_names.delete_if {|method_name| method_name !~ /^test./}
+        suite = Test::Unit::TestSuite.new(name)
+        tests.sort.each do
+          |test|
+          catch(:invalid_test) do
+            suite << new(test)
+          end
+        end
+        if (suite.empty?)
+          catch(:invalid_test) do
+            suite << new("default_test")
+          end
+        end
+        return suite
+      end
+      
+      # wiping out the execute method prevents rspec from trying the run the test case
+      def execute(run_options, instance_variables)
+      end
+      
+      def run(result)
+        yield(STARTED, name)
+        @_result = result
+        begin
+          setup
+          __send__(@method_name)
+        rescue Test::Unit::AssertionFailedError => e
+          puts e
+          puts e.backtrace
+          add_failure(e.message, e.backtrace)
+        rescue Exception
+          raise if PASSTHROUGH_EXCEPTIONS.include? $!.class
+          puts $!
+          puts $!.backtrace
+          add_error($!)
+        ensure
+          begin
+            teardown
+          rescue Test::Unit::AssertionFailedError => e
+            puts e
+            puts e.backtrace
+            add_failure(e.message, e.backtrace)
+          rescue Exception
+            raise if PASSTHROUGH_EXCEPTIONS.include? $!.class
+            puts $!
+            puts $!.backtrace
+            add_error($!)
+          end
+        end
+        result.add_run
+        yield(FINISHED, name)
+      end      
+    end   
+  end
 end
+Dataset::Testing::TestCase.extend Dataset::Extensions::TestUnitTestCase
 
 describe Test::Unit::TestCase do
   it 'should have a dataset method' do
-    testcase = Class.new(Test::Unit::TestCase)
+    testcase = Class.new(Dataset::Testing::TestCase)
     testcase.should respond_to(:dataset)
   end
   
@@ -28,7 +101,7 @@ describe Test::Unit::TestCase do
   
   it 'should provide one dataset session for tests' do
     sessions = []
-    testcase = Class.new(Test::Unit::TestCase) do
+    testcase = Class.new(Dataset::Testing::TestCase) do
       dataset Class.new(Dataset::Base)
       
       define_method(:test_one) do
@@ -55,7 +128,7 @@ describe Test::Unit::TestCase do
       end
     end
     
-    testcase = Class.new(Test::Unit::TestCase) do
+    testcase = Class.new(Dataset::Testing::TestCase) do
       dataset(dataset_one)
       def test_one; end
     end
@@ -75,7 +148,7 @@ describe Test::Unit::TestCase do
   
   it 'should forward blocks passed in to the dataset method' do
     load_count = 0
-    testcase = Class.new(Test::Unit::TestCase) do
+    testcase = Class.new(Dataset::Testing::TestCase) do
       dataset_class = Class.new(Dataset::Base)
       dataset dataset_class do
         load_count += 1
@@ -88,7 +161,7 @@ describe Test::Unit::TestCase do
   
   it 'should forward blocks passed in to the dataset method that do not use a dataset class' do
     load_count = 0
-    testcase = Class.new(Test::Unit::TestCase) do
+    testcase = Class.new(Dataset::Testing::TestCase) do
       dataset do
         load_count += 1
       end
@@ -100,7 +173,7 @@ describe Test::Unit::TestCase do
   
   it 'should copy instance variables from block to tests' do
     value_in_test = nil
-    testcase = Class.new(Test::Unit::TestCase) do
+    testcase = Class.new(Dataset::Testing::TestCase) do
       dataset do
         @myvar = 'Hello'
       end
@@ -115,7 +188,7 @@ describe Test::Unit::TestCase do
   
   it 'should copy instance variables from block to subclass blocks' do
     value_in_subclass_block = nil
-    testcase = Class.new(Test::Unit::TestCase) do
+    testcase = Class.new(Dataset::Testing::TestCase) do
       dataset do
         @myvar = 'Hello'
       end
@@ -138,8 +211,8 @@ describe Test::Unit::TestCase do
       end
     end
     
-    testcase = Class.new(Test::Unit::TestCase) do
-      self.dataset(dataset)
+    testcase = Class.new(Dataset::Testing::TestCase) do
+      dataset(dataset)
       def test_one; end
       def test_two; end
     end
@@ -156,8 +229,8 @@ describe Test::Unit::TestCase do
       end
     end
     
-    testcase = Class.new(Test::Unit::TestCase) do
-      self.dataset(dataset)
+    testcase = Class.new(Dataset::Testing::TestCase) do
+      dataset(dataset)
       define_method :test_model_finders do
         found_model = things(:mything)
       end
@@ -185,8 +258,8 @@ describe Test::Unit::TestCase do
     end
     
     test_instance = nil
-    testcase = Class.new(Test::Unit::TestCase) do
-      self.dataset(dataset_two)
+    testcase = Class.new(Dataset::Testing::TestCase) do
+      dataset(dataset_two)
       define_method :test_model_finders do
         test_instance = self
       end
@@ -203,8 +276,9 @@ describe Test::Unit::TestCase do
   def run_testcase(testcase)
     result = Test::Unit::TestResult.new
     testcase.module_eval { def test_dont_complain; end }
-    testcase.suite.run(result) {}
+    suite = testcase.suite.run(result) {}
     result.failure_count.should be(0)
     result.error_count.should be(0)
+    result.run_count.should > 0
   end
 end
