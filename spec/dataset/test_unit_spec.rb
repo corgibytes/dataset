@@ -2,82 +2,6 @@ require File.expand_path(File.dirname(__FILE__) + '/../spec_helper')
 
 require 'test/unit/testresult'
 
-module Dataset
-  module Testing    
-    class TestCase < Test::Unit::TestCase
-      include Dataset
-      
-      # rspec monkey patches the suite method and the initialize method. Doing so allows 
-      # it to take over execution of the tests. We don't want that here. We want to run
-      # directly against Test::Unit. So I have copied this method directly from
-      # the 1.8 version of Test::Unit. Is there a way to restore the original method
-      # in a programmatic fashion? Or should I patch rspec so that I can get access
-      # to the original methods?
-  
-      def initialize(test_method_name)
-        @method_name = test_method_name
-        @test_passed = true
-      end
-      
-      def self.suite
-        method_names = public_instance_methods(true)
-        tests = method_names.delete_if {|method_name| method_name !~ /^test./}
-        suite = Test::Unit::TestSuite.new(name)
-        tests.sort.each do
-          |test|
-          catch(:invalid_test) do
-            suite << new(test)
-          end
-        end
-        if (suite.empty?)
-          catch(:invalid_test) do
-            suite << new("default_test")
-          end
-        end
-        return suite
-      end
-      
-      # wiping out the execute method prevents rspec from trying the run the test case
-      def execute(run_options, instance_variables)
-      end
-      
-      def run(result)
-        yield(STARTED, name)
-        @_result = result
-        begin
-          setup
-          __send__(@method_name)
-        rescue Test::Unit::AssertionFailedError => e
-          puts e
-          puts e.backtrace
-          add_failure(e.message, e.backtrace)
-        rescue Exception
-          raise if PASSTHROUGH_EXCEPTIONS.include? $!.class
-          puts $!
-          puts $!.backtrace
-          add_error($!)
-        ensure
-          begin
-            teardown
-          rescue Test::Unit::AssertionFailedError => e
-            puts e
-            puts e.backtrace
-            add_failure(e.message, e.backtrace)
-          rescue Exception
-            raise if PASSTHROUGH_EXCEPTIONS.include? $!.class
-            puts $!
-            puts $!.backtrace
-            add_error($!)
-          end
-        end
-        result.add_run
-        yield(FINISHED, name)
-      end      
-    end   
-  end
-end
-Dataset::Testing::TestCase.extend Dataset::Extensions::TestUnitTestCase
-
 describe Test::Unit::TestCase do
   it 'should have a dataset method' do
     testcase = Class.new(Dataset::Testing::TestCase)
@@ -92,7 +16,7 @@ describe Test::Unit::TestCase do
     dataset_two = Class.new(Dataset::Base) do
       define_method(:load) { load_count += 1 }
     end
-    testcase = Class.new(Test::Unit::TestCase) do
+    testcase = Class.new(Dataset::Testing::TestCase) do
       dataset dataset_one, dataset_two
     end
     run_testcase(testcase)
@@ -260,17 +184,17 @@ describe Test::Unit::TestCase do
     test_instance = nil
     testcase = Class.new(Dataset::Testing::TestCase) do
       self.dataset(dataset_two)
-      define_method :test_model_finders do
+      define_method :test_model_finders_unique do
         test_instance = self
       end
     end
     
     run_testcase(testcase)
     
-    testcase.should_not respond_to(:helper_one)
-    testcase.should_not respond_to(:helper_two)
-    test_instance.should respond_to(:helper_one)
-    test_instance.should respond_to(:helper_two)
+    testcase.respond_to?(:helper_one).should be_false
+    testcase.respond_to?(:helper_two).should be_false
+    test_instance.respond_to?(:helper_one).should be_true
+    test_instance.respond_to?(:helper_two).should be_true
   end
   
   def run_testcase(testcase)

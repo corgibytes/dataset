@@ -45,3 +45,79 @@ end
 
 require "models"
 require "dataset"
+
+module Dataset
+  module Testing    
+    class TestCase < Test::Unit::TestCase
+      include Dataset
+      
+      # rspec monkey patches the suite method and the initialize method. Doing so allows 
+      # it to take over execution of the tests. We don't want that here. We want to run
+      # directly against Test::Unit. So I have copied this method directly from
+      # the 1.8 version of Test::Unit. Is there a way to restore the original method
+      # in a programmatic fashion? Or should I patch rspec so that I can get access
+      # to the original methods?
+  
+      def initialize(test_method_name)
+        @method_name = test_method_name
+        @test_passed = true
+      end
+      
+      def self.suite
+        method_names = public_instance_methods(true)
+        tests = method_names.delete_if {|method_name| method_name !~ /^test./}
+        suite = Test::Unit::TestSuite.new(name)
+        tests.sort.each do
+          |test|
+          catch(:invalid_test) do
+            suite << new(test)
+          end
+        end
+        if (suite.empty?)
+          catch(:invalid_test) do
+            suite << new("default_test")
+          end
+        end
+        return suite
+      end
+      
+      # wiping out the execute method prevents rspec from trying the run the test case
+      def execute(run_options, instance_variables)
+      end
+      
+      def run(result)
+        yield(STARTED, name)
+        @_result = result
+        begin
+          setup
+          __send__(@method_name)
+        rescue Test::Unit::AssertionFailedError => e
+          puts e
+          puts e.backtrace
+          add_failure(e.message, e.backtrace)
+        rescue Exception
+          raise if PASSTHROUGH_EXCEPTIONS.include? $!.class
+          puts $!
+          puts $!.backtrace
+          add_error($!)
+        ensure
+          begin
+            teardown
+          rescue Test::Unit::AssertionFailedError => e
+            puts e
+            puts e.backtrace
+            add_failure(e.message, e.backtrace)
+          rescue Exception
+            raise if PASSTHROUGH_EXCEPTIONS.include? $!.class
+            puts $!
+            puts $!.backtrace
+            add_error($!)
+          end
+        end
+        result.add_run
+        yield(FINISHED, name)
+      end      
+    end   
+  end
+end
+Dataset::Testing::TestCase.extend Dataset::Extensions::TestUnitTestCase

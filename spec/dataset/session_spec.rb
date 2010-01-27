@@ -1,6 +1,6 @@
 require File.expand_path(File.dirname(__FILE__) + '/../spec_helper')
 
-TestCaseRoot = Class.new(Test::Unit::TestCase)
+TestCaseRoot = Class.new(Dataset::Testing::TestCase)
 TestCaseChild = Class.new(TestCaseRoot)
 TestCaseSibling = Class.new(TestCaseRoot)
 TestCaseGrandchild = Class.new(TestCaseChild)
