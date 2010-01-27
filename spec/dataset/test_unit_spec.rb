@@ -129,11 +129,11 @@ describe Test::Unit::TestCase do
     end
     
     testcase = Class.new(Dataset::Testing::TestCase) do
-      dataset(dataset_one)
+      self.dataset(dataset_one)
       def test_one; end
     end
     testcase_child = Class.new(testcase) do
-      dataset(dataset_two)
+      self.dataset(dataset_two)
       def test_two; end
     end
     
@@ -212,7 +212,7 @@ describe Test::Unit::TestCase do
     end
     
     testcase = Class.new(Dataset::Testing::TestCase) do
-      dataset(dataset)
+      self.dataset(dataset)
       def test_one; end
       def test_two; end
     end
@@ -230,7 +230,7 @@ describe Test::Unit::TestCase do
     end
     
     testcase = Class.new(Dataset::Testing::TestCase) do
-      dataset(dataset)
+      self.dataset(dataset)
       define_method :test_model_finders do
         found_model = things(:mything)
       end
@@ -259,7 +259,7 @@ describe Test::Unit::TestCase do
     
     test_instance = nil
     testcase = Class.new(Dataset::Testing::TestCase) do
-      dataset(dataset_two)
+      self.dataset(dataset_two)
       define_method :test_model_finders do
         test_instance = self
       end
@@ -276,7 +276,7 @@ describe Test::Unit::TestCase do
   def run_testcase(testcase)
     result = Test::Unit::TestResult.new
     testcase.module_eval { def test_dont_complain; end }
-    suite = testcase.suite.run(result) {}
+    testcase.suite.run(result) {}
     result.failure_count.should be(0)
     result.error_count.should be(0)
     result.run_count.should > 0
