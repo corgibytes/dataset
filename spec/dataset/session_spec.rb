@@ -3,6 +3,7 @@ require File.expand_path(File.dirname(__FILE__) + '/../spec_helper')
 TestCaseRoot = Class.new(Dataset::Testing::TestCase)
 TestCaseChild = Class.new(TestCaseRoot)
 TestCaseSibling = Class.new(TestCaseRoot)
+TestCaseSiblingUnique = Class.new(TestCaseRoot)
 TestCaseGrandchild = Class.new(TestCaseChild)
 
 DatasetOne = Class.new(Dataset::Base)
@@ -26,13 +27,20 @@ describe Dataset::Session do
       @session.datasets_for(TestCaseRoot).should == [DatasetOne, DatasetTwo]
     end
     
+    it 'should combine datasets from test superclasses into subclasses (using a better test ;)' do
+      @session.add_dataset TestCaseRoot, DatasetOne
+      @session.add_dataset TestCaseChild, DatasetTwo
+      @session.datasets_for(TestCaseChild).should == [DatasetOne, DatasetTwo]
+      @session.datasets_for(TestCaseGrandchild).should == [DatasetOne, DatasetTwo]
+    end
+    
     it 'should combine datasets from test superclasses into subclasses' do
       @session.add_dataset TestCaseRoot, DatasetOne
       @session.add_dataset TestCaseChild, DatasetTwo
       @session.add_dataset TestCaseChild, DatasetOne
       @session.datasets_for(TestCaseChild).should == [DatasetOne, DatasetTwo]
       @session.datasets_for(TestCaseGrandchild).should == [DatasetOne, DatasetTwo]
-    end
+    end    
     
     it 'should include those that a dataset declares it uses' do
       dataset_one = Class.new(Dataset::Base) do
@@ -43,6 +51,20 @@ describe Dataset::Session do
       end
       @session.add_dataset TestCaseRoot, dataset_two
       @session.add_dataset TestCaseChild, DatasetTwo
+      @session.datasets_for(TestCaseChild).should == [DatasetTwo, dataset_one, DatasetOne, dataset_two]
+      @session.datasets_for(TestCaseGrandchild).should == [DatasetTwo, dataset_one, DatasetOne, dataset_two]
+    end
+    
+    it 'should include those that a dataset declares it uses (using a better test ;)' do
+      dataset_one = Class.new(Dataset::Base) do
+        uses DatasetTwo
+      end
+      dataset_two = Class.new(Dataset::Base) do
+        uses dataset_one, DatasetOne
+      end
+      @session.add_dataset TestCaseRoot, dataset_one
+      @session.add_dataset TestCaseChild, dataset_two
+      @session.datasets_for(TestCaseRoot).should == [DatasetTwo, dataset_one]
       @session.datasets_for(TestCaseChild).should == [DatasetTwo, dataset_one, DatasetOne, dataset_two]
       @session.datasets_for(TestCaseGrandchild).should == [DatasetTwo, dataset_one, DatasetOne, dataset_two]
     end
@@ -59,6 +81,7 @@ describe Dataset::Session do
     end
   end
   
+  # study from here down
   describe 'dataset loading' do
     it 'should clear the database on first load' do
       @database.should_receive(:clear).once()
@@ -226,9 +249,11 @@ describe Dataset::Session do
       Thing.count.should == 1
       Place.count.should == 1
       
-      @session.load_datasets_for TestCaseSibling
+      @session.load_datasets_for TestCaseSiblingUnique
       dataset_one_load_count.should == 1
       dataset_two_load_count.should == 1
+      puts Thing.count
+      puts Place.count
       Thing.count.should == 1
       Place.count.should == 0
     end
