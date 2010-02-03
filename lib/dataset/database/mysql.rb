@@ -11,24 +11,7 @@ module Dataset
         @password = database_spec[:password]
         @storage_path = storage_path
         FileUtils.mkdir_p(@storage_path)
-      end
-      
-      def capture(datasets)
-        return if datasets.nil? || datasets.empty?
-        `mysqldump -u #{@username} --password=#{@password} --compact --extended-insert --no-create-db --add-drop-table --quick --quote-names #{@database} > #{storage_path(datasets)}`
-      end
-      
-      def restore(datasets)
-        store = storage_path(datasets)
-        if File.file?(store)
-          `mysql -u #{@username} --password=#{@password} --database=#{@database} < #{store}`
-          true
-        end
-      end
-      
-      def storage_path(datasets)
-        "#{@storage_path}/#{datasets.collect {|c| c.__id__}.join('_')}.sql"
-      end
+      end      
     end
   end
 end

@@ -3,7 +3,6 @@ require File.expand_path(File.dirname(__FILE__) + '/../spec_helper')
 TestCaseRoot = Class.new(Dataset::Testing::TestCase)
 TestCaseChild = Class.new(TestCaseRoot)
 TestCaseSibling = Class.new(TestCaseRoot)
-TestCaseSiblingUnique = Class.new(TestCaseRoot)
 TestCaseGrandchild = Class.new(TestCaseChild)
 
 DatasetOne = Class.new(Dataset::Base)
@@ -81,7 +80,6 @@ describe Dataset::Session do
     end
   end
   
-  # study from here down
   describe 'dataset loading' do
     it 'should clear the database on first load' do
       @database.should_receive(:clear).once()
@@ -249,11 +247,11 @@ describe Dataset::Session do
       Thing.count.should == 1
       Place.count.should == 1
       
-      @session.load_datasets_for TestCaseSiblingUnique
-      dataset_one_load_count.should == 1
+      # loading a sibling in the same tree as the previous load forces a reload
+      # this causes dataset_one's load_count to increase to 2
+      @session.load_datasets_for TestCaseSibling
+      dataset_one_load_count.should == 2
       dataset_two_load_count.should == 1
-      puts Thing.count
-      puts Place.count
       Thing.count.should == 1
       Place.count.should == 0
     end
@@ -307,8 +305,8 @@ describe Dataset::Session do
       binding_two   = Dataset::SessionBinding.new(binding_one)
       binding_three = Dataset::SessionBinding.new(binding_one)
       
-      Dataset::SessionBinding.should_receive(:new).with(@database).and_return(binding_one)
-      Dataset::SessionBinding.should_receive(:new).with(binding_one).twice().and_return(binding_two)
+      Dataset::SessionBinding.should_receive(:new).with(@database).twice().and_return(binding_one)
+      Dataset::SessionBinding.should_receive(:new).with(binding_one).and_return(binding_two)
       
       dataset_one = Class.new(Dataset::Base) { define_method :load do; end }
       dataset_two = Class.new(Dataset::Base) { define_method :load do; end }
@@ -316,8 +314,12 @@ describe Dataset::Session do
       @session.add_dataset TestCaseRoot, dataset_one
       @session.add_dataset TestCaseChild, dataset_two
       
+      # these two calls share the same session
       @session.load_datasets_for TestCaseRoot
+      # this call will use a wrapped version of the previous session
       @session.load_datasets_for TestCaseChild
+      
+      # this will force the creation of a new session
       @session.load_datasets_for TestCaseSibling
     end
   end

@@ -9,24 +9,6 @@ module Dataset
         @database_path, @storage_path = database_spec[:database], storage_path
         FileUtils.mkdir_p(@storage_path)
       end
-      
-      def capture(datasets)
-        return if datasets.nil? || datasets.empty?
-        cp @database_path, storage_path(datasets)
-      end
-      
-      def restore(datasets)
-        store = storage_path(datasets)
-        if File.file?(store)
-          mv store, @database_path
-          ActiveRecord::Base.establish_connection 'test'
-          true
-        end
-      end
-      
-      def storage_path(datasets)
-        "#{@storage_path}/#{datasets.collect {|c| c.__id__}.join('_')}.sqlite3.db"
-      end
     end
   end
 end

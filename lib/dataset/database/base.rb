@@ -5,8 +5,6 @@ module Dataset
     
     # Provides Dataset a way to clear, dump and load databases.
     class Base
-      include FileUtils
-      
       def clear
         connection = ActiveRecord::Base.connection
         ActiveRecord::Base.silence do
@@ -29,7 +27,7 @@ module Dataset
           Dataset::Record::Meta.new(heirarchy, record_class)
         end
       end
-      
+                              
       protected
         def record_metas
           @record_metas ||= Hash.new
@@ -38,6 +36,7 @@ module Dataset
         def record_heirarchies
           @record_heirarchies ||= Hash.new
         end
+                
     end
   end
 end

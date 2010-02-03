@@ -1,5 +1,6 @@
 SPEC_ROOT = File.expand_path(File.dirname(__FILE__))
 require "#{SPEC_ROOT}/../plugit/descriptor"
+require 'pathname'
 
 # From RSpec's spec_helper.rb. Necessary to run an example group.
 def with_sandboxed_options
@@ -18,7 +19,7 @@ def with_sandboxed_options
 end
 
 $LOAD_PATH << SPEC_ROOT
-RAILS_ROOT = "#{SPEC_ROOT}/.."
+RAILS_ROOT = (Pathname.new(SPEC_ROOT) + "..").to_s unless defined?(RAILS_ROOT)
 $LOAD_PATH << "#{RAILS_ROOT}/lib"
 RAILS_LOG_FILE = "#{RAILS_ROOT}/log/test.log"
 SQLITE_DATABASE = "#{SPEC_ROOT}/sqlite3.db"
@@ -27,7 +28,8 @@ require 'fileutils'
 FileUtils.mkdir_p(File.dirname(RAILS_LOG_FILE))
 FileUtils.touch(RAILS_LOG_FILE)
 FileUtils.mkdir_p("#{SPEC_ROOT}/tmp")
-FileUtils.rm_rf("#{SPEC_ROOT}/tmp/*")
+FileUtils.rm_f(Dir.glob("#{SPEC_ROOT}/tmp/*"))
+FileUtils.rm_f(Dir.glob("#{RAILS_ROOT}/tmp/dataset/*"))
 FileUtils.rm_f(SQLITE_DATABASE)
 
 require 'logger'
@@ -83,6 +85,7 @@ module Dataset
       
       # wiping out the execute method prevents rspec from trying the run the test case
       def execute(run_options, instance_variables)
+        true
       end
       
       def run(result)

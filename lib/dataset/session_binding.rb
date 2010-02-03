@@ -170,7 +170,7 @@ module Dataset
   end
   
   class SessionBinding # :nodoc:
-    attr_reader :database, :parent_binding
+    attr_reader :database
     attr_reader :model_finders, :record_methods
     attr_reader :block_variables
     
@@ -183,7 +183,7 @@ module Dataset
       case database_or_parent_binding
       when Dataset::SessionBinding
         @parent_binding = database_or_parent_binding
-        @database = parent_binding.database
+        @database = @parent_binding.database
         @model_finders.module_eval { include database_or_parent_binding.model_finders }
         @block_variables.update(database_or_parent_binding.block_variables)
       else 
@@ -210,8 +210,8 @@ module Dataset
       heirarchy = record_meta.heirarchy
       if local_id = @id_cache[heirarchy.id_cache_key][symbolic_name]
         local_id
-      elsif !parent_binding.nil?
-        parent_binding.find_id record_meta, symbolic_name
+      elsif !@parent_binding.nil?
+        @parent_binding.find_id record_meta, symbolic_name
       else
         raise RecordNotFound.new(heirarchy, symbolic_name)
       end
@@ -222,8 +222,8 @@ module Dataset
       heirarchy = record_meta.heirarchy
       if local_id = @id_cache[heirarchy.id_cache_key][symbolic_name]
         heirarchy.base_class.find local_id
-      elsif !parent_binding.nil?
-        parent_binding.find_model record_meta, symbolic_name
+      elsif !@parent_binding.nil?
+        @parent_binding.find_model record_meta, symbolic_name
       else
         raise RecordNotFound.new(heirarchy, symbolic_name)
       end
