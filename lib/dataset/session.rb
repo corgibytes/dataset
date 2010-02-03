@@ -5,6 +5,10 @@ module Dataset
     def initialize(database, dataset_resolver = Resolver.default)
       @database = database
       @dataset_resolver = dataset_resolver
+      reset!
+    end
+    
+    def reset!
       @datasets = Hash.new
       @load_stack = []
     end

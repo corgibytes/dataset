@@ -5,8 +5,8 @@ module Dataset
     class CucumberInitializer # :nodoc:
       include Dataset
       
-      def load(datasets)
-        datasets.each do |dataset|
+      def load(*datasets)
+        datasets.each do |dataset|          
           self.class.add_dataset(dataset)
         end
 
@@ -19,14 +19,17 @@ module Dataset
         # Makes sure the datasets are reloaded after each scenario
         ::Cucumber::Rails::World.use_transactional_fixtures = true
       end
+      
+      alias_method :use, :load
     end
     
     module Cucumber # :nodoc:      
-      def Datasets
+      def Datasets(&block)
         raise "A block is required when calling Datasets" unless block_given?
+        
+        CucumberInitializer.dataset_session.reset! unless CucumberInitializer.dataset_session.nil?
         initializer = CucumberInitializer.new
-        datasets = yield
-        initializer.load(datasets)
+        initializer.instance_eval(&block)
       end
     end    
   end

@@ -55,6 +55,15 @@ The benefit is that you can reuse interesting sets of data, without sacrificing 
 
 Get things installed, then read more in the Dataset documentation at http://aiwilliams.github.com/dataset
 
+== New Cucumber-Friendly Syntax
+
+New syntax has been added to support cucumber. A Datasets method has been added. Call it just like you are used to calling World, Given, When, Then, etc... In the body of the block that you pass to the Datasets method, calls to use will signal which datasets you want to make part of your test suite. Datasets are reloaded whenever a scenario is run.
+
+Warning: If Datasets is called multiple times, only the datasets that are specified in the last executed block will be used.
+
+Datasets do
+  use :organizations
+end
 
 == Installation
 
@@ -102,6 +111,7 @@ Written by [Adam Williams](http://github.com/aiwilliams).
     
 Contributors:
 
+- [M. Scott Ford](http://www.corgibytes.com) [github](http://github.com/mscottford)
 - [Saturn Flyer](http://www.saturnflyer.com) [github](http://github.com/saturnflyer)
 - [Steve Iannopollo](http://github.com/siannopollo)
 - [John Long](http://github.com/jlong)
