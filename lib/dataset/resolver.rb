@@ -74,6 +74,10 @@ module Dataset
       @paths << path
     end
     
+    def paths
+      @paths
+    end
+    
     protected
       def resolve_identifier(identifier) # :nodoc:
         @paths.each do |path|

@@ -23,6 +23,7 @@ RAILS_ROOT = (Pathname.new(SPEC_ROOT) + "..").to_s unless defined?(RAILS_ROOT)
 $LOAD_PATH << "#{RAILS_ROOT}/lib"
 RAILS_LOG_FILE = "#{RAILS_ROOT}/log/test.log"
 SQLITE_DATABASE = "#{SPEC_ROOT}/sqlite3.db"
+TEMP_PATH = "#{SPEC_ROOT}/tmp/tmp"
 
 require 'fileutils'
 FileUtils.mkdir_p(File.dirname(RAILS_LOG_FILE))
@@ -31,6 +32,8 @@ FileUtils.mkdir_p("#{SPEC_ROOT}/tmp")
 FileUtils.rm_f(Dir.glob("#{SPEC_ROOT}/tmp/*"))
 FileUtils.rm_f(Dir.glob("#{RAILS_ROOT}/tmp/dataset/*"))
 FileUtils.rm_f(SQLITE_DATABASE)
+FileUtils.mkdir_p(TEMP_PATH)
+FileUtils.rm_f("#{TEMP_PATH}/*")
 
 require 'logger'
 RAILS_DEFAULT_LOGGER = Logger.new(RAILS_LOG_FILE)

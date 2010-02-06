@@ -27,10 +27,7 @@ Gem::Specification.new do |s|
      "lib/dataset.rb",
      "lib/dataset/base.rb",
      "lib/dataset/collection.rb",
-     "lib/dataset/database/base.rb",
-     "lib/dataset/database/mysql.rb",
-     "lib/dataset/database/postgresql.rb",
-     "lib/dataset/database/sqlite3.rb",
+     "lib/dataset/database.rb",
      "lib/dataset/extensions/cucumber.rb",
      "lib/dataset/extensions/rspec.rb",
      "lib/dataset/extensions/test_unit.rb",
@@ -54,7 +51,7 @@ Gem::Specification.new do |s|
   s.summary = %q{A simple API for creating and finding sets of data in your database, built on ActiveRecord.}
   s.test_files = [
     "spec/dataset/cucumber_spec.rb",
-     "spec/dataset/database/base_spec.rb",
+     "spec/dataset/database_spec.rb",
      "spec/dataset/record/heirarchy_spec.rb",
      "spec/dataset/resolver_spec.rb",
      "spec/dataset/rspec_spec.rb",

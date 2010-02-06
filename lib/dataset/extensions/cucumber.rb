@@ -21,13 +21,19 @@ module Dataset
       end
       
       alias_method :use, :load
+      
+      def datasets_directory(directory)
+        context_methods = Class.new do
+          include Dataset::ContextClassMethods
+        end
+        context_methods.new.datasets_directory(directory)
+      end
     end
     
     module Cucumber # :nodoc:      
       def Datasets(&block)
         raise "A block is required when calling Datasets" unless block_given?
         
-        CucumberInitializer.dataset_session.reset! unless CucumberInitializer.dataset_session.nil?
         initializer = CucumberInitializer.new
         initializer.instance_eval(&block)
       end

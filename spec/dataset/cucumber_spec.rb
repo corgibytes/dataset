@@ -19,6 +19,11 @@ describe "Cucumber Support" do
   before do
     @cucumber_world = $__cucumber_root.clone()
     @step_mother = create_step_mother
+    
+    # reset the dataset session before each test
+    unless Dataset::Extensions::CucumberInitializer.dataset_session.nil?
+      Dataset::Extensions::CucumberInitializer.dataset_session.reset! 
+    end
   end
   
   describe "cucumber root object" do
@@ -194,6 +199,37 @@ describe "Cucumber Support" do
       dataset_two_load_count.should be(1)
     end    
     
+    it "should allow calling Datasets method more than once" do
+      dataset_one_load_count = 0
+      dataset_one = Class.new(Dataset::Base) do
+        define_method(:load) do
+          dataset_one_load_count += 1
+        end
+      end
+      
+      dataset_two_load_count = 0      
+      DatasetTwo.class_eval do
+        define_method(:load) do
+          dataset_two_load_count += 1
+        end
+      end
+            
+      @cucumber_world.Datasets do
+        use dataset_one
+      end
+      
+      @cucumber_world.Datasets do
+        use :dataset_two
+      end
+      
+      dataset_one_load_count.should be(0)
+      dataset_two_load_count.should be(0)
+      run_cucumber
+      dataset_one_load_count.should be(1)
+      dataset_two_load_count.should be(1)
+    end    
+    
+    
   end
   
   it "should load the dataset when the scenario is run" do
@@ -211,6 +247,14 @@ describe "Cucumber Support" do
     dataset_load_count.should be(0)
     run_cucumber
     dataset_load_count.should be(1)
+  end
+  
+  it "should let you specify the datasets directory" do
+    @cucumber_world.Datasets do
+      datasets_directory TEMP_PATH
+    end
+    
+    Dataset::Resolver.default.paths.include?(TEMP_PATH).should be(true)
   end
   
   def run_cucumber()

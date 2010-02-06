@@ -1,8 +1,8 @@
-require File.expand_path(File.dirname(__FILE__) + '/../../spec_helper')
+require File.expand_path(File.dirname(__FILE__) + '/../spec_helper')
 
-describe Dataset::Database::Base do
+describe Dataset::Database do
   before do
-    @database = Dataset::Database::Base.new
+    @database = Dataset::Database.new
   end
   
   it 'should clear the tables of all AR classes' do
