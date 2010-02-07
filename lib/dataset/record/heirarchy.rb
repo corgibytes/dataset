@@ -40,7 +40,9 @@ module Dataset
       end
       
       def finder_name(klass)
-        klass.name.underscore.gsub('/', '_').sub(/^(\w)_/, '\1').gsub(/_(\w)_/, '_\1')
+        name = klass.name
+        name = "%s:0x%x" % [klass.class, klass.object_id] if name.nil? or name.empty?
+        name.underscore.gsub('/', '_').sub(/^(\w)_/, '\1').gsub(/_(\w)_/, '_\1')
       end
       
       def id_finder_name(klass)
