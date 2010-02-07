@@ -7,8 +7,9 @@ require "cucumber/rb_support/rb_language"
 require "cucumber/ast"
 require "cucumber/rails/world"
 require "cucumber/rails/rspec"
-require "dataset/extensions/cucumber"
 require "cucumber/formatter/pretty"
+
+require "dataset/extensions/cucumber"
 
 DatasetOne = Class.new(Dataset::Base)
 DatasetTwo = Class.new(Dataset::Base)
@@ -17,13 +18,22 @@ $__cucumber_root = self
 
 describe "Cucumber Support" do
   before do
-    @cucumber_world = $__cucumber_root.clone()
-    @step_mother = create_step_mother
+    @step_mother, @rb_language = create_step_mother_and_language
+    raise "What?!" if @rb_language.nil?
     
+    @visitor = Cucumber::Ast::TreeWalker.new(@step_mother)
+    @visitor.options = {}
+    @step_mother.visitor = @visitor    
+        
+    @cucumber_world = $__cucumber_root
+    Dataset::Extensions::Cucumber.load_world(@cucumber_world)
+        
     # reset the dataset session before each test
     unless Dataset::Extensions::CucumberInitializer.dataset_session.nil?
       Dataset::Extensions::CucumberInitializer.dataset_session.reset! 
     end
+    
+    @it_ran = true
   end
   
   describe "cucumber root object" do
@@ -257,47 +267,77 @@ describe "Cucumber Support" do
     Dataset::Resolver.default.paths.include?(TEMP_PATH).should be(true)
   end
   
-  def run_cucumber()
+  it "should let you call model finders from a Given method" do
+    created_model, found_model = nil
+    dataset = Class.new(Dataset::Base) do
+      define_method(:load) do
+        created_model = create_model(Thing, :mything)
+      end
+    end
+    
+    @cucumber_world.Datasets do
+      load dataset
+    end
+    
+    @cucumber_world.Given /I am using a model finder/ do
+      found_model = things(:mything)
+    end
+        
+    run_cucumber("I am using a model finder")
+    found_model.should_not be_nil
+    found_model.should == created_model
+  end
+  
+  def run_cucumber(*steps)
     given_execute_count = 0
     @cucumber_world.Given /true is true/ do
       given_execute_count += 1
     end
     
-    visitor = Cucumber::Ast::TreeWalker.new(@step_mother)
-    visitor.options = {}
-    
-    @step_mother.visitor = visitor    
-    scenario = create_scenario_with_step("true is true")
-    
+    steps << "true is true"
+    @scenario = create_scenario_with_steps(steps)
+        
     # since everything before this point has just been setup
     # let"s make sure that the act of visiting the scenario is
     # what is changing the values
     given_execute_count.should be(0)
     
     # run the scenario
-    visitor.visit_feature_element(scenario)
+    @visitor.visit_feature_element(@scenario)
+    
+    unless given_execute_count > 0
+      puts @scenario.status
+      puts @scenario.exception
+    end
     
     # now verify that it ran
     given_execute_count.should be(1)
   end
   
-  def create_step_mother
+  def create_step_mother_and_language
     step_mother = Cucumber::StepMother.new
     step_mother.load_natural_language("en")
-    step_mother.load_programming_language("rb")
-    step_mother
+    rb_language = step_mother.load_programming_language("rb")
+    Cucumber::RbSupport::RbDsl.rb_language = rb_language
+    return step_mother, rb_language 
   end
 
-  def create_scenario_with_step(step_text)
+  def create_scenario_with_steps(steps)
+    step_index = 10
+    scenario_steps = []
+    steps.each do |step|
+      scenario_steps <<
+        Cucumber::Ast::Step.new(step_index, "Given", step)
+      step_index += 1
+    end
+    
     scenario = Cucumber::Ast::Scenario.new(
       nil,
       Cucumber::Ast::Comment.new(""),
       Cucumber::Ast::Tags.new(8, []),
       9,
       "Scenario:", "A Scenario",
-      [
-        Cucumber::Ast::Step.new(10, "Given", "true is true")
-      ]
+      scenario_steps
     )
     
     feature = Cucumber::Ast::Feature.new(

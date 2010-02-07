@@ -14,7 +14,7 @@ module Dataset
         initializer = self
         $__cucumber_toplevel.Before do
           load = initializer.dataset_session.load_datasets_for(initializer.class)
-          initializer.extend_from_dataset_load(load)
+          extend_from_dataset_load(load)
         end
         # Makes sure the datasets are reloaded after each scenario
         ::Cucumber::Rails::World.use_transactional_fixtures = true
@@ -37,8 +37,20 @@ module Dataset
         initializer = CucumberInitializer.new
         initializer.instance_eval(&block)
       end
+      
+      def self.load_world(target)
+        target.World(Dataset::Extensions::WorldTest)
+        target.World(Dataset::InstanceMethods)
+      end
     end    
+    
+    module WorldTest
+      def test_method
+        puts "test_method was called"
+      end
+    end
   end
 end
 
+Dataset::Extensions::Cucumber.load_world(self)
 extend(Dataset::Extensions::Cucumber)
