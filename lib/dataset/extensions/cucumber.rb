@@ -39,16 +39,9 @@ module Dataset
       end
       
       def self.load_world(target)
-        target.World(Dataset::Extensions::WorldTest)
         target.World(Dataset::InstanceMethods)
       end
     end    
-    
-    module WorldTest
-      def test_method
-        puts "test_method was called"
-      end
-    end
   end
 end
 
