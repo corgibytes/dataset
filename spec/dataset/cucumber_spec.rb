@@ -19,7 +19,6 @@ $__cucumber_root = self
 describe "Cucumber Support" do
   before do
     @step_mother, @rb_language = create_step_mother_and_language
-    raise "What?!" if @rb_language.nil?
     
     @visitor = Cucumber::Ast::TreeWalker.new(@step_mother)
     @visitor.options = {}
@@ -28,12 +27,6 @@ describe "Cucumber Support" do
     @cucumber_world = $__cucumber_root
     Dataset::Extensions::Cucumber.load_world(@cucumber_world)
         
-    # reset the dataset session before each test
-    unless Dataset::Extensions::CucumberInitializer.dataset_session.nil?
-      Dataset::Extensions::CucumberInitializer.dataset_session.reset! 
-    end
-    
-    @it_ran = true
   end
   
   describe "cucumber root object" do
@@ -223,7 +216,7 @@ describe "Cucumber Support" do
           dataset_two_load_count += 1
         end
       end
-            
+      
       @cucumber_world.Datasets do
         use dataset_one
       end
@@ -231,7 +224,7 @@ describe "Cucumber Support" do
       @cucumber_world.Datasets do
         use :dataset_two
       end
-      
+            
       dataset_one_load_count.should be(0)
       dataset_two_load_count.should be(0)
       run_cucumber

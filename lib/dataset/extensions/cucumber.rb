@@ -5,19 +5,39 @@ module Dataset
     class CucumberInitializer # :nodoc:
       include Dataset
       
+      def initialize
+        @datasets = []
+        @cucumber_has_been_setup = false
+      end
+      
+      def datasets
+        @datasets
+      end
+            
       def load(*datasets)
-        datasets.each do |dataset|          
-          self.class.add_dataset(dataset)
-        end
+        @datasets += datasets
 
-        load = nil
-        initializer = self
-        $__cucumber_toplevel.Before do
-          load = initializer.dataset_session.load_datasets_for(initializer.class)
-          extend_from_dataset_load(load)
+        unless @cucumber_has_been_setup
+          load = nil
+          initializer = self
+          $__cucumber_toplevel.Before do
+            # reset the dataset session before each scenario
+            unless initializer.dataset_session.nil?
+              initializer.dataset_session.reset! 
+            end
+          
+            initializer.datasets.each do |dataset|          
+              initializer.class.add_dataset(dataset)
+            end
+          
+            load = initializer.dataset_session.load_datasets_for(initializer.class)
+            extend_from_dataset_load(load)
+          end
+          # Makes sure the datasets are reloaded after each scenario
+          ::Cucumber::Rails::World.use_transactional_fixtures = true
+          
+          @cucumber_has_been_setup = true
         end
-        # Makes sure the datasets are reloaded after each scenario
-        ::Cucumber::Rails::World.use_transactional_fixtures = true
       end
       
       alias_method :use, :load
@@ -34,8 +54,8 @@ module Dataset
       def Datasets(&block)
         raise "A block is required when calling Datasets" unless block_given?
         
-        initializer = CucumberInitializer.new
-        initializer.instance_eval(&block)
+        @initializer = CucumberInitializer.new unless defined? @initalizer
+        @initializer.instance_eval(&block)
       end
       
       def self.load_world(target)
